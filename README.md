@@ -19,5 +19,5 @@ Options:
 ## Example
 
 ```powershell
-oneweb.exe -g data/dosimeter_gps_info.csv -m data/dosimeter_measure_info.csv -d data/dosimeter_image_packets.csv -o output
+one-web-extractor.exe -g data/dosimeter_gps_info.csv -m data/dosimeter_measure_info.csv -d data/dosimeter_image_packets.csv -o output
 ```

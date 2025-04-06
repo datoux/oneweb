@@ -54,7 +54,7 @@ impl Processor {
                     self.last_gps_data.timestamp = 0.0;
                     return Ok(last_data);
                 } else {
-                    bail!("No mor edata available");
+                    bail!("No more data available");
                 }
             }
         }
