@@ -4,17 +4,19 @@ pub struct Pixel {
     pub x: u8,
     pub y: u8,
     pub value: u16,
+    pub value2: u16,
     pub neighbor_mask: u8,
     pub neighbors: [i8; 8],
 }
 
 #[allow(dead_code)]
 impl Pixel {
-    pub fn new(x: u8, y: u8, value: u16) -> Pixel {
+    pub fn new(x: u8, y: u8, value: u16, value2: u16) -> Pixel {
         Pixel {
             x,
             y,
             value,
+            value2,
             neighbor_mask: 0,
             neighbors: [-1; 8],
         }
@@ -63,7 +65,13 @@ impl Clusterer {
         Clusterer { vec: Vec::new() }
     }
 
-    pub fn search_frame(&self, frame: &[u16], width: i64, height: i64) -> Vec<Cluster> {
+    pub fn search_frame(
+        &self,
+        frame: &[u16],
+        frame2: &[u16],
+        width: i64,
+        height: i64,
+    ) -> Vec<Cluster> {
         let mut clusters: Vec<Cluster> = Vec::new();
 
         const DIRX: [i8; 8] = [-1, -1, 0, 1, 1, 1, 0, -1];
@@ -78,9 +86,10 @@ impl Clusterer {
 
             let x: u8 = (idx % 256) as u8;
             let y: u8 = (idx / 256) as u8;
+            let value2: u16 = frame2[idx];
 
             let mut cluster = Cluster::new();
-            let first_pixel = Pixel::new(x, y, *value);
+            let first_pixel = Pixel::new(x, y, *value, value2);
             cluster.add_pixel(first_pixel);
             mask[idx] = 0;
 
@@ -105,7 +114,7 @@ impl Clusterer {
 
                     if mask[didx] == UNTESTED {
                         // new pixel, not part of any cluster
-                        let pixel = Pixel::new(dx as u8, dy as u8, frame[didx]);
+                        let pixel = Pixel::new(dx as u8, dy as u8, frame[didx], frame2[didx]);
                         cluster.add_pixel(pixel);
                         mask[didx] = (pix_idx + 1) as i64;
                     } else {

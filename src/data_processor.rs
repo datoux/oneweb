@@ -201,7 +201,7 @@ impl DataProcessor {
 
     pub fn clusterize_frame(&self, frame: &mut Frame) {
         let clusterer = Clusterer::new();
-        frame.clusters = clusterer.search_frame(&frame.itot, 256, 256);
+        frame.clusters = clusterer.search_frame(&frame.itot, &frame.event, 256, 256);
     }
 
     pub fn get_next_frame<R>(&mut self, reader: &mut io::BufReader<R>) -> Result<Frame>

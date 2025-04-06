@@ -122,7 +122,11 @@ impl Processor {
 
         for cluster in &frame.clusters {
             for pix in &cluster.pixels {
-                write!(writer, "[{}, {}, {}] ", pix.x, pix.y, pix.value)?;
+                write!(
+                    writer,
+                    "[{}, {}, {}, {}] ",
+                    pix.x, pix.y, pix.value, pix.value2
+                )?;
             }
             write!(writer, "{}", &self.lend)?;
         }
