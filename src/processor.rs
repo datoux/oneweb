@@ -3,6 +3,7 @@ use crate::gps_processor::{GpsData, GpsProcessor};
 use crate::info_processor::{MeasInfoData, MeasInfoProcessor};
 use anyhow::{Result, bail};
 use chrono::{self, TimeZone};
+use std::env;
 use std::io::prelude::*;
 use std::path::Path;
 
@@ -10,6 +11,7 @@ pub struct Processor {
     last_gps_data: GpsData,
     last_info_data: MeasInfoData,
     frame_index: usize,
+    lend: String,
 }
 
 impl Processor {
@@ -22,6 +24,11 @@ impl Processor {
                 ..Default::default()
             },
             frame_index: 0,
+            lend: if env::consts::OS == "windows" {
+                String::from("\r\n")
+            } else {
+                String::from("\n")
+            },
         }
     }
 
@@ -107,18 +114,19 @@ impl Processor {
         //Frame 1 (1484036406.350515, 85.762486 s)
         write!(
             writer,
-            "Frame {} ({}, 0.0 s)\n",
+            "Frame {} ({}, 0.0 s){}",
             self.frame_index + 1,
-            info_data.timestamp
+            info_data.timestamp,
+            &self.lend,
         )?;
 
         for cluster in &frame.clusters {
             for pix in &cluster.pixels {
                 write!(writer, "[{}, {}, {}] ", pix.x, pix.y, pix.value)?;
             }
-            write!(writer, "\n")?;
+            write!(writer, "{}", &self.lend)?;
         }
-        write!(writer, "\n")?;
+        write!(writer, "{}", self.lend)?;
 
         Ok(())
     }
@@ -136,12 +144,13 @@ impl Processor {
         if self.frame_index == 0 {
             write!(
                 writer,
-                "Frame Index\tTimestamp\tFrame Timestamp\tTemp\tGPS J2000 X\tGPS J2000 Y\tGPS J2000 Z\tGPS Q Scalar\tGPS Q Vector 1\tGPS Q Vector 2\tGPS Q Vector 3\n"
+                "Frame Index\tTimestamp\tFrame Timestamp\tTemp\tGPS J2000 X\tGPS J2000 Y\tGPS J2000 Z\tGPS Q Scalar\tGPS Q Vector 1\tGPS Q Vector 2\tGPS Q Vector 3{}",
+                self.lend,
             )?;
         }
         write!(
             writer,
-            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
+            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}{}",
             self.frame_index + 1,
             info_data.timestamp,
             frame.timestamp,
@@ -152,7 +161,8 @@ impl Processor {
             gps_data.q_est_prop_bj_scalar,
             gps_data.q_est_prop_bj_vector_1,
             gps_data.q_est_prop_bj_vector_2,
-            gps_data.q_est_prop_bj_vector_3
+            gps_data.q_est_prop_bj_vector_3,
+            self.lend,
         )?;
         Ok(())
     }
