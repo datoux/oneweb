@@ -102,10 +102,41 @@ impl Processor {
         }
     }
 
+    fn calculate_acq_time(info_data: &MeasInfoData, max_pix_count: usize) -> f64 {
+        let pix_short = info_data.pixel_short as f64;
+        let pix_long = info_data.pixel_long as f64;
+        let time_short = 0.1;
+        let time_long = 1.0;
+        let a = (pix_long - pix_short) / (time_long - time_short);
+        let b = pix_long - a * time_long;
+        let mut acq_time = if a != 0.0 {
+            (max_pix_count as f64 - b) / a
+        } else {
+            0.0
+        };
+        if acq_time > 25.0 {
+            acq_time = 25.0;
+        }
+        acq_time
+    }
+
+    fn fmt_acq_time(acq_time: f64) -> String {
+        let acq_time_fmt = format!("{:.6}", acq_time);
+        if acq_time_fmt.contains('.') {
+            acq_time_fmt
+                .trim_end_matches('0')
+                .trim_end_matches('.')
+                .to_string()
+        } else {
+            acq_time_fmt
+        }
+    }
+
     fn save_frame_to_clusterlog<R>(
         &mut self,
         frame: &Frame,
         info_data: &MeasInfoData,
+        acq_time: f64,
         writer: &mut std::io::BufWriter<R>,
     ) -> Result<()>
     where
@@ -114,9 +145,10 @@ impl Processor {
         //Frame 1 (1484036406.350515, 85.762486 s)
         write!(
             writer,
-            "Frame {} ({}, 0.0 s){}",
+            "Frame {} ({}, {} s){}",
             self.frame_index + 1,
             info_data.timestamp,
+            Self::fmt_acq_time(acq_time),
             &self.lend,
         )?;
 
@@ -176,13 +208,14 @@ impl Processor {
         frame: &Frame,
         info_data: &MeasInfoData,
         gps_data: &GpsData,
+        acq_time: f64,
         clog_writer: &mut std::io::BufWriter<R>,
         meta_writer: &mut std::io::BufWriter<R>,
     ) -> Result<()>
     where
         R: std::io::Write,
     {
-        self.save_frame_to_clusterlog(&frame, &info_data, clog_writer)?;
+        self.save_frame_to_clusterlog(&frame, &info_data, acq_time, clog_writer)?;
         self.save_metadata(&frame, &info_data, &gps_data, meta_writer)?;
         self.frame_index += 1;
         Ok(())
@@ -194,6 +227,7 @@ impl Processor {
         meas_file: &str,
         data_file: &str,
         out_dir: &str,
+        max_pix_count: usize,
     ) -> Result<(), anyhow::Error> {
         let gps_processor = GpsProcessor::new();
         let info_processor = MeasInfoProcessor::new();
@@ -231,6 +265,7 @@ impl Processor {
                 .unwrap();
 
             let cur_date = info_date.format("%Y-%m-%d").to_string();
+            let acq_time = Self::calculate_acq_time(&info_data, max_pix_count);
 
             if clog_write.is_none() || meta_write.is_none() || date != cur_date {
                 // Reuse existing files
@@ -248,10 +283,22 @@ impl Processor {
             if clog_write.is_some() && meta_write.is_some() {
                 let clog_writer = clog_write.as_mut().unwrap();
                 let meta_writer = meta_write.as_mut().unwrap();
-                self.save_to_files(&frame, &info_data, &gps_data, clog_writer, meta_writer)?;
+                self.save_to_files(
+                    &frame,
+                    &info_data,
+                    &gps_data,
+                    acq_time,
+                    clog_writer,
+                    meta_writer,
+                )?;
             }
 
-            println!("Processing frame {} ({}) ...", idx, info_date);
+            println!(
+                "Processing frame {} ({}, {} s) ...",
+                idx,
+                info_date,
+                Self::fmt_acq_time(acq_time)
+            );
         }
     }
 }

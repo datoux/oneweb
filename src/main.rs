@@ -28,6 +28,10 @@ struct Cli {
     /// Output directory
     #[arg(short = 'o', long)]
     output_directory: String,
+
+    /// Max pixel hit count
+    #[arg(short = 'x', long, default_value = "1638")]
+    max_pix_count: u32,
 }
 
 fn main() {
@@ -38,13 +42,16 @@ fn main() {
     let meas_file = args.meas_file;
     let data_file = args.data_file;
     let out_dir = args.output_directory;
+    let max_pix_count = args.max_pix_count as usize;
 
     if fs::create_dir_all(&out_dir).is_err() {
         eprintln!("Error creating output directory: {}", out_dir);
         return;
     }
 
-    if let Err(e) = processor.process_files(&gps_file, &meas_file, &data_file, &out_dir) {
+    if let Err(e) =
+        processor.process_files(&gps_file, &meas_file, &data_file, &out_dir, max_pix_count)
+    {
         let error_message = e.to_string();
         if error_message.contains("No more data available") {
             println!("Done.");
