@@ -172,6 +172,7 @@ impl Processor {
         frame: &Frame,
         info_data: &MeasInfoData,
         gps_data: &GpsData,
+        acq_time: f64,
         writer: &mut std::io::BufWriter<R>,
     ) -> Result<()>
     where
@@ -180,13 +181,13 @@ impl Processor {
         if self.frame_index == 0 {
             write!(
                 writer,
-                "Frame Index\tTimestamp\tFrame Timestamp\tTemp\tGPS J2000 X\tGPS J2000 Y\tGPS J2000 Z\tGPS Q Scalar\tGPS Q Vector 1\tGPS Q Vector 2\tGPS Q Vector 3{}",
+                "Frame Index\tTimestamp\tFrame Timestamp\tTemp\tGPS J2000 X\tGPS J2000 Y\tGPS J2000 Z\tGPS Q Scalar\tGPS Q Vector 1\tGPS Q Vector 2\tGPS Q Vector 3\tacq_time\tpixels short\tpixels long{}",
                 self.lend,
             )?;
         }
         write!(
             writer,
-            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}{}",
+            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}{}",
             self.frame_index + 1,
             info_data.timestamp,
             frame.timestamp,
@@ -198,6 +199,9 @@ impl Processor {
             gps_data.q_est_prop_bj_vector_1,
             gps_data.q_est_prop_bj_vector_2,
             gps_data.q_est_prop_bj_vector_3,
+            acq_time,
+            info_data.pixel_short,
+            info_data.pixel_long,
             self.lend,
         )?;
         Ok(())
@@ -216,7 +220,7 @@ impl Processor {
         R: std::io::Write,
     {
         self.save_frame_to_clusterlog(&frame, &info_data, acq_time, clog_writer)?;
-        self.save_metadata(&frame, &info_data, &gps_data, meta_writer)?;
+        self.save_metadata(&frame, &info_data, &gps_data, acq_time, meta_writer)?;
         self.frame_index += 1;
         Ok(())
     }
